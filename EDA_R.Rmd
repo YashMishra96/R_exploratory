@@ -1,0 +1,232 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+
+
+
+
+```{r}
+req_pkgs = c('dplyr', 'ggplot2', 'plyr')
+lapply(req_pkgs, require, character.only = TRUE)
+options(repr.plot.width=10, repr.plot.height=8)
+options(scipen = 999)
+
+```
+
+```{r}
+
+data <- read.csv("/home/FRACTAL/yash.mishra/Downloads/Auto_Insurance_Claims_Sample.csv",header = TRUE)
+```
+
+
+```{r}
+dplyr::count(data, data[["Education"]], )
+```
+
+
+```{r}
+str(data)
+```
+
+
+```{r}
+ncol(data)
+```
+
+
+```{r}
+names(data)
+```
+
+
+
+```{r}
+# 2 is to represent that we are finding unique values along the columns 
+apply(data, 2, function(x)length(unique(x)))
+```
+
+
+
+
+
+
+
+
+
+
+Functions for Basic EDA, summaries categorical and numeric variables
+
+
+
+
+```{r}
+colNames <- names(data)
+catCols <- c()
+numCols <-c()
+dtypeList <- lapply(data, function(x) class(x))
+  for (cols in colNames){
+    if (dtypeList[[cols]]=="factor" | dtypeList[[cols]]=="character")
+    {
+      catCols <-c(catCols, cols)
+    }
+    else{
+      numCols <-c(numCols, cols)
+    }
+  }
+```
+
+
+```{r}
+
+
+catSummary<- function(data, varName){
+  #varName <- "Education"
+  tempdata<- count(data, data[[varName]])
+  numLevels <- length(unique(data[varName]))
+  tempdata <- cbind(c(rep(varName, numLevels)),tempdata)
+  names(tempdata)[1] <- "VariableName"
+  names(tempdata)[2] <- "Levels"
+  names(tempdata)[3]<- "Frequency"
+  tempdata<- tempdata[order(-tempdata["Frequency"]),]
+  tempdata <- cbind(tempdata,round((tempdata["Frequency"]/sum(tempdata["Frequency"]))*100,2))
+  names(tempdata)[4]<- "Percent"
+  tempdata <- cbind(tempdata, cumsum(tempdata["Frequency"]))
+  names(tempdata)[5] <- "CumulativeFrequency"
+  tempdata <- cbind(tempdata, cumsum(tempdata["Percent"]))
+  names(tempdata)[6]<- "CumulativePercent"
+  tempdata["VariableName"] <-NA
+  tempdata[1, "VariableName"] <- varName
+  
+  return (tempdata)  }
+
+numSummary<- function(data, varName){
+  
+  N_non_nulls = nrow(data[!is.na(data[varName]),])
+  N_nulls     =nrow(data[is.na(data[varName]),])
+  max_ <- max(data[[varName]])
+  min_ <-min(data[[varName]])
+  mean_ <-mean(data[[varName]])
+  summary <- quantile(data[[varName]], probs = c(0.01, 0.05,0.1,0.25,0.5,0.75,0.9,0.95,0.99))
+  full_summary<- c(varName,N_non_nulls, N_nulls,max_,min_,mean_,summary)
+  
+  return (full_summary)
+}
+
+```
+
+
+```{r}
+
+  
+  numDF<- data.frame(matrix(ncol=15, nrow=length(numCols)))
+  colnames(numDF)<-c("Variable",		"N"	,"N Miss",	"Maximum",	"Minimum",	"Mean",	"p1",	"p5",	"p10",	"Q1",	"50thPctl",	"Q3",	"p90",	"p95",	"p99")
+  
+  
+  for (i in 1:length(numCols))
+  {
+  numDF[i,]<- numSummary(data, numCols[i])
+}
+
+
+```
+
+```{r}
+plotDataFunction<- function(data, varName, depVarName,categorical= TRUE){
+  
+  if (categorical){
+    
+  dataList<- split(data, data[[varName]])
+  tempList  <- lapply(dataList, function(x) mean(x[[depVarName]]))
+  tempList <- tempList[order(names(tempList))]
+  tempList <-unlist(tempList)
+  tempDF <- count(data, data[[varName]])
+  names(tempDF)[1]<- varName
+  names(tempDF)[2]<-"Frequency"
+  tempDF <- tempDF[order(tempDF[[varName]]),]
+  tempDF<- cbind(tempDF, as.numeric(unlist(tempList)))
+  names(tempDF)[3]<- "levelWiseAvg"
+    
+  }
+  else 
+  {
+    #intervalVector<-(cut(data[[varName]], breaks=seq(min(data[[varName]]),max(data[[varName]]), length.out = 10), include.lowest=TRUE))
+  
+  intervalVector<-(cut(data[[varName]], breaks=c(quantile(data[[varName]],probs = seq(0,1,0.1))), include.lowest=TRUE))  
+    
+  dataList<- split(data, intervalVector)
+  tempList  <- lapply(dataList, function(x) mean(x[[depVarName]]))
+  tempList <- tempList[order(names(tempList))]
+  tempList <-unlist(tempList)
+  tempDF <- plyr::count(cbind(data,newVar =intervalVector), "newVar")
+  tempDF <- tempDF[order(tempDF[["newVar"]]),]
+  tempDF<- cbind(tempDF, tempList)
+  names(tempDF)[1]<- varName
+  names(tempDF)[2]<-"Frequency"
+  names(tempDF)[3]<- "levelWiseAvg"
+    
+  }
+  return(tempDF)
+    
+  
+}
+```
+
+```{r}
+ plotDataFunction(data, "Education", "Total.Claim.Amount",TRUE)
+```
+```{r}
+plotDataFunction(data, "Claim.Amount", "Total.Claim.Amount",FALSE)
+```
+
+
+```{r}
+catSummary(data, "Education")
+```
+
+
+
+
+```{r}
+numDF
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+unlist(tempList)
+```
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
