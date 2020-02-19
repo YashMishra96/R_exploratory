@@ -138,13 +138,13 @@ plotDataFunction<- function(data, varName, depVarName,categorical= TRUE, bins =1
     
   
 
+#plotDataFunction(data, "Claim.Amount", "Total.Claim.Amount", FALSE)
 
- plotDataFunction(data, "Claim.Amount", "Total.Claim.Amount", FALSE)
-
-
+# Exporting summaries for some variables
+                    
 write.csv(numDF, "numericSummary.csv")
-write.csv(catSummary(data, "Education"), "cat_EducationSummary.csv")
+write.csv(catSummary(data, "Education"), "catSummary.csv")
 
 write.csv(plotDataFunction(data, "Claim.Amount", "Total.Claim.Amount",FALSE), "numericLevelWise.csv")
 
-write.csv( plotDataFunction(data, "Education", "Total.Claim.Amount",TRUE), "cat_Edu_LevelWise.csv")
+write.csv( plotDataFunction(data, "Education", "Total.Claim.Amount",TRUE), "catLevelWise.csv")
